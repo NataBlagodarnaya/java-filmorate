@@ -61,13 +61,13 @@ public class UserController {
 
     @PutMapping
     public User update(@Validated(OnUpdate.class) @RequestBody User newUser) {
-        // проверяем необходимые условия
-        if (isExistEmail(newUser)) {
-            log.error("Ошибка 409 Conflict : введенный Email уже используется {}", newUser);
-            throw new DuplicatedDataException("Этот имейл уже используется");
-        }
         if (users.containsKey(newUser.getId())) {
             User oldUser = users.get(newUser.getId());
+            // проверяем необходимые условия
+            if (isExistEmail(newUser) && !newUser.getEmail().equals(oldUser.getEmail())) {
+                log.error("Ошибка 409 Conflict : введенный Email уже используется {}", newUser);
+                throw new DuplicatedDataException("Этот Email уже используется");
+            }
             // если публикация найдена и все условия соблюдены, обновляем её содержимое
             oldUser.setEmail(newUser.getEmail());
             oldUser.setLogin(newUser.getLogin());

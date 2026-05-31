@@ -48,10 +48,6 @@ class UserModelTests {
     }
 
     @Test
-    void contextLoads() {
-    }
-
-    @Test
     void shouldReturnBadRequestWhenBadUserEmail() throws Exception {
         user.setEmail("sdf@");
         runSameActions(user)

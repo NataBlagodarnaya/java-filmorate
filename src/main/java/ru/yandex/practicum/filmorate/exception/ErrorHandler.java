@@ -33,4 +33,24 @@ public class ErrorHandler {
 
         return errors;//чтобы пользователь увидел в чем ошибка
     }
+
+    @ExceptionHandler(DuplicatedDataException.class)
+    //@ResponseStatus(HttpStatus.CONFLICT) // Статус 409 Conflict, а тесты в Postman из ТЗ просят 500 или 404
+    public Map<String, String> handleDuplicatedDataException(DuplicatedDataException ex) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage()); // Передаем текст ошибки пользователю
+
+        return error;
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleNotFoundException(NotFoundException ex) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage()); // Передаем текст ошибки пользователю
+
+        return error;
+    }
 }

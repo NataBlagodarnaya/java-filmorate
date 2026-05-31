@@ -48,10 +48,6 @@ class FilmModelTests {
     }
 
     @Test
-    void contextLoads() {
-    }
-
-    @Test
     void shouldReturnBadRequestWhenFilmNameIsBlank() throws Exception {
         film.setName("   ");
         runSameActions(film)
