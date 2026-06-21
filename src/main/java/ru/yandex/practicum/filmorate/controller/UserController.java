@@ -1,85 +1,63 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import ru.yandex.practicum.filmorate.validator.OnUpdate;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
-@Slf4j
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/users")
 public class UserController {
 
-    private final Map<Long, User> users = new HashMap<>();
+    private final UserStorage userStorage;
+    private final UserService userService;
 
     @GetMapping
     public Collection<User> findAll() {
-        return users.values();
+        return userStorage.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public User findById(@PathVariable long id) {
+        return userStorage.getUserById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм с id = " + id + " не найден"));
+    }
+
+    @PutMapping("/{id}/friends/{friendId}")
+    public void addFriend(@PathVariable long id, @PathVariable long friendId) {
+       userService.addFriend(id, friendId);
+    }
+
+    @DeleteMapping("/{id}/friends/{friendId}")
+    public void deleteFriend(@PathVariable long id, @PathVariable long friendId) {
+        userService.deleteFriend(id, friendId);
+    }
+
+    @GetMapping("/{id}/friends")
+    public Collection<User> getFriends(@PathVariable Long id) {
+      return userService.detUserFriendsList(id);
+    }
+
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public Collection<User> getSameFriends(@PathVariable Long id, @PathVariable Long otherId) {
+        return userService.getUsersSameFriendsList(id, otherId);
     }
 
     @PostMapping
     public User create(@Valid @RequestBody User user) {
-        // проверяем выполнение необходимых условий
-        if (isExistEmail(user)) {
-            log.error("Ошибка 409 Conflict : введенный Email уже используется {}", user);
-            throw new DuplicatedDataException("Этот Email уже используется");
-        }
-        // формируем дополнительные данные
-        user.setId(getNextId());
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-        // сохраняем нового пользователя в памяти приложения
-        users.put(user.getId(), user);
-        log.info("Успешно добавлен новый пользователь {}", user);
-        return user;
-    }
-
-    // вспомогательный метод для генерации идентификатора нового пользователя
-    private long getNextId() {
-        long currentMaxId = users.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
-    }
-
-    //вспомогательный метод проверки существует ли такой имейл
-    private boolean isExistEmail(User user) {
-        return users.values().stream()
-                .anyMatch(u -> u.getEmail().equals(user.getEmail()));
+        return userStorage.create(user);
     }
 
     @PutMapping
     public User update(@Validated(OnUpdate.class) @RequestBody User newUser) {
-        if (users.containsKey(newUser.getId())) {
-            User oldUser = users.get(newUser.getId());
-            // проверяем необходимые условия
-            if (isExistEmail(newUser) && !newUser.getEmail().equals(oldUser.getEmail())) {
-                log.error("Ошибка 409 Conflict : введенный Email уже используется {}", newUser);
-                throw new DuplicatedDataException("Этот Email уже используется");
-            }
-            // если публикация найдена и все условия соблюдены, обновляем её содержимое
-            oldUser.setEmail(newUser.getEmail());
-            oldUser.setLogin(newUser.getLogin());
-            if (newUser.getName() == null || newUser.getName().isBlank()) {
-                oldUser.setName(newUser.getLogin());
-            } else {
-                oldUser.setName(newUser.getName());
-            }
-            oldUser.setBirthday(newUser.getBirthday());
-            return oldUser;
-        }
-        log.error("Ошибка 404 Not Found: нет пользователя с указанным id {}", newUser);
-        throw new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден");
+        return userStorage.update(newUser);
     }
 }

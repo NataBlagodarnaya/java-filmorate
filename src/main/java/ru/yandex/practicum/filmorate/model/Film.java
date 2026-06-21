@@ -11,6 +11,8 @@ import ru.yandex.practicum.filmorate.validator.AfterDate;
 import ru.yandex.practicum.filmorate.validator.OnUpdate;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Film.
@@ -30,4 +32,6 @@ public class Film { //предполагаю что фильм можно соз
     private LocalDate releaseDate;
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Integer duration;
+
+    private Set<Long> likes = new HashSet<>();
 }
