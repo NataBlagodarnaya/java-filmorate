@@ -67,7 +67,7 @@ class UserModelTests {
 
     @Test
     void shouldReturnBadRequestWhenUserLoginIsBlank() throws Exception {
-        user.setLogin("");
+        user.setLogin(null);
         runSameActions(user)
                 //ожидаем какое сообщение об ошибке увидит пользователь
                 .andExpect(jsonPath("$.login").value("Логин пользователя не может быть пустым"));
