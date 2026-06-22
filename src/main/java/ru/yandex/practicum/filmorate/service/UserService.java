@@ -70,4 +70,20 @@ public class UserService {
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
     }
+
+    public Collection<User> findAll() {
+        return userStorage.findAll();
+    }
+
+    public User create(User user) {
+        return userStorage.create(user);
+    }
+
+    public User update(User newUser) {
+        return userStorage.update(newUser);
+    }
+
+    public Optional<User> getUserById(Long id) {
+        return userStorage.getUserById(id);
+    }
 }
