@@ -20,7 +20,7 @@ import java.util.Set;
 @Getter
 @Setter
 @ToString
-public class Film { //предполагаю что фильм можно создать указав в запросе только название и дату релиза, а менять еще указав id
+public class Film {
     @NotNull(message = "Id должен быть указан", groups = OnUpdate.class) //только при обновлении
     private Long id;
     @NotBlank(message = "Название фильма не может быть пустым")
@@ -34,4 +34,8 @@ public class Film { //предполагаю что фильм можно соз
     private Integer duration;
 
     private Set<Long> likes = new HashSet<>();
+
+    private Set<Genre> genre = new HashSet<>();
+
+    private Rating rating;
 }
