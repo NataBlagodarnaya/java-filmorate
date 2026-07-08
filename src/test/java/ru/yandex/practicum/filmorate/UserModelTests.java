@@ -67,7 +67,7 @@ class UserModelTests {
 
     @Test
     void shouldReturnBadRequestWhenUserLoginIsBlank() throws Exception {
-        user.setLogin("");
+        user.setLogin(null);
         runSameActions(user)
                 //ожидаем какое сообщение об ошибке увидит пользователь
                 .andExpect(jsonPath("$.login").value("Логин пользователя не может быть пустым"));
@@ -83,7 +83,7 @@ class UserModelTests {
 
     @Test
     void shouldReturnBadRequestWhenUserBirthdayIsInFuture() throws Exception {
-        user.setBirthday(LocalDate.of(2026, 06, 01));
+        user.setBirthday(LocalDate.of(2027, 06, 22));
         runSameActions(user)
                 //ожидаем какое сообщение об ошибке увидит пользователь
                 .andExpect(jsonPath("$.birthday")
