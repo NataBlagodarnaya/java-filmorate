@@ -16,26 +16,26 @@ import java.util.Set;
 
 /**
  * Film.
- */
-@Getter
-@Setter
-@ToString
-public class Film {
-    @NotNull(message = "Id должен быть указан", groups = OnUpdate.class) //только при обновлении
-    private Long id;
-    @NotBlank(message = "Название фильма не может быть пустым")
-    private String name;
-    @Size(max = 200, message = "Длина описания не может быть больше 200 символов")
-    private String description;
-    @NotNull(message = "Дата релиза должна быть указана")
-    @AfterDate(message = "Дата релиза фильма должна быть после {value}")
-    private LocalDate releaseDate;
-    @Positive(message = "Продолжительность фильма должна быть положительным числом")
-    private Integer duration;
+     */
+    @Getter
+    @Setter
+    @ToString
+    public class Film {
+        @NotNull(message = "Id должен быть указан", groups = OnUpdate.class) //только при обновлении
+        private Long id;
+        @NotBlank(message = "Название фильма не может быть пустым")
+        private String name;
+        @Size(max = 200, message = "Длина описания не может быть больше 200 символов")
+        private String description;
+        @NotNull(message = "Дата релиза должна быть указана")
+        @AfterDate(message = "Дата релиза фильма должна быть после {value}")
+        private LocalDate releaseDate;
+        @Positive(message = "Продолжительность фильма должна быть положительным числом")
+        private Integer duration;
 
-    private Set<Long> likes = new HashSet<>();
+        private Set<Long> likes = new HashSet<>();
 
-    private Set<Genre> genre = new HashSet<>();
+        private Set<Genre> genre = new HashSet<>();
 
-    private Rating rating;
-}
+        private Rating rating;
+    }

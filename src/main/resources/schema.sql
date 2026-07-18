@@ -1,0 +1,44 @@
+CREATE TABLE IF NOT EXISTS users (
+            user_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            username VARCHAR(40) NOT NULL,
+            email VARCHAR(40) NOT NULL UNIQUE,
+            login VARCHAR(40) NOT NULL,
+            birthday_date DATE NOT NULL
+          );
+
+CREATE TABLE IF NOT EXISTS friends (
+    user_id BIGINT REFERENCES users(user_id) ON DELETE CASCADE,
+    friend_id BIGINT REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT pk_friends PRIMARY KEY (user_id, friend_id) -- Составной первичный ключ
+);
+
+CREATE TABLE IF NOT EXISTS rating (
+    rating_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    rating VARCHAR(20) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS films (
+            film_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            title VARCHAR(200) NOT NULL,
+            description VARCHAR(200) NOT NULL,
+            release_date DATE NOT NULL,
+            duration INTEGER NOT NULL,
+            rating_id BIGINT REFERENCES rating(rating_id) ON DELETE CASCADE
+          );
+
+CREATE TABLE IF NOT EXISTS genre (
+    genre_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    genre VARCHAR(20) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS film_genre (
+    film_id BIGINT REFERENCES films(film_id) ON DELETE CASCADE,
+    genre_id BIGINT REFERENCES genre(genre_id) ON DELETE CASCADE,
+    CONSTRAINT pk_film_genre PRIMARY KEY (film_id, genre_id) -- Составной первичный ключ
+);
+
+CREATE TABLE IF NOT EXISTS likes (
+    film_id BIGINT REFERENCES films(film_id) ON DELETE CASCADE,
+    user_id BIGINT REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT pk_likes PRIMARY KEY (film_id, user_id) -- Составной первичный ключ
+);

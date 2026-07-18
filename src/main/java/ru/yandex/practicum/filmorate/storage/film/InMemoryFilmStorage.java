@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -12,21 +13,19 @@ import java.util.Optional;
 
 @Slf4j
 @Component
+@Qualifier("inMemoryFilmStorage")
 public class InMemoryFilmStorage implements FilmStorage {
 
     private final Map<Long, Film> films = new HashMap<>();
 
     @Override
     public Film create(Film film) {
-        // формируем дополнительные данные
         film.setId(getNextId());
-        // сохраняем новый фильм в памяти приложения
         films.put(film.getId(), film);
         log.info("Успешно добавлен новый фильм {}", film);
         return film;
     }
 
-    // вспомогательный метод для генерации идентификатора нового фильма
     private long getNextId() {
         long currentMaxId = films.keySet()
                 .stream()
@@ -44,7 +43,6 @@ public class InMemoryFilmStorage implements FilmStorage {
     public Film update(Film newFilm) {
         if (films.containsKey(newFilm.getId())) {
             Film oldFilm = films.get(newFilm.getId());
-            // если фильм найден и все условия соблюдены, обновляем его
             oldFilm.setName(newFilm.getName());
             oldFilm.setDescription(newFilm.getDescription());
             oldFilm.setReleaseDate(newFilm.getReleaseDate());
@@ -74,5 +72,20 @@ public class InMemoryFilmStorage implements FilmStorage {
     @Override
     public Optional<Film> getFilmById(Long id) {
         return Optional.ofNullable(films.get(id));
+    }
+
+    @Override
+    public void addLike(Long filmId, Long userId) {
+        throw new UnsupportedOperationException("InMemoryFilmStorage не поддерживается.");
+    }
+
+    @Override
+    public void deleteLike(Long filmId, Long userId) {
+        throw new UnsupportedOperationException("InMemoryFilmStorage не поддерживается.");
+    }
+
+    @Override
+    public Collection<Film> getPopularFilms(Integer count) {
+        throw new UnsupportedOperationException("InMemoryFilmStorage не поддерживается.");
     }
 }
