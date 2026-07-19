@@ -17,7 +17,7 @@ public class ErrorHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public Map<String, String> handleArgumentNotValidExceptions(MethodArgumentNotValidException ex) {
         Object target = ex.getBindingResult().getTarget();
         log.error("Ошибка автоматической валидации для объекта: {}", target);//показываем в логе сам запрос где ошибка
 
@@ -40,7 +40,7 @@ public class ErrorHandler {
 
         Map<String, String> error = new HashMap<>();
         error.put("error", ex.getMessage()); // Передаем текст ошибки пользователю
-
+        log.error("Дублирование данных: {}", ex.getMessage(), ex);
         return error;
     }
 
@@ -50,17 +50,37 @@ public class ErrorHandler {
 
         Map<String, String> error = new HashMap<>();
         error.put("error", ex.getMessage()); // Передаем текст ошибки пользователю
-
+        log.error("Ресурс не найден: {}", ex.getMessage());
         return error;
     }
 
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleValidationException(ValidationException ex) {
+    public Map<String, String> handleValidationExceptions(ValidationException ex) {
 
         Map<String, String> error = new HashMap<>();
         error.put("error", ex.getMessage()); // Передаем текст ошибки пользователю
+        log.error("Ошибка валидации: {}", ex.getMessage(), ex);
+        return error;
+    }
 
+    @ExceptionHandler(InternalServerException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Map<String, String> handleInternalServerExceptions(InternalServerException ex) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage()); // Передаем текст ошибки пользователю
+        log.error("Внутренняя ошибка сервера: {}", ex.getMessage(), ex);
+        return error;
+    }
+
+    @ExceptionHandler(Throwable.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Map<String, String> handleAllUncaughtExceptions(Throwable ex) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage()); // Передаем текст ошибки пользователю
+        log.error("Что-то пошло не так. Это не обработанная ошибка: {}", ex.getMessage(), ex);
         return error;
     }
 }

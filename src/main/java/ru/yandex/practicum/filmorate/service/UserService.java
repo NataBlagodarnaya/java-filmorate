@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -10,13 +11,13 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.Collection;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class UserService {
 
+    @Qualifier("userDbStorage")
     private final UserStorage userStorage;
 
     private User checkAndGetUser(Long id) {
@@ -27,48 +28,36 @@ public class UserService {
         return userStorage.getUserById(id).get();
     }
 
-    //добавление в друзья
     public void addFriend(Long userId, Long friendID) {
         if (userId.equals(friendID)) {
             log.error("Ошибка валидации. id пользователя и друга совпадают {}", userId);
             throw new ValidationException("Нельзя добавить самого себя в друзья.");
         }
-        User user = checkAndGetUser(userId);
-        user.getFriends().add(friendID);
-        log.info("Пользователю с id {} добавлен друг с id {}", userId, friendID);
-        User friend = checkAndGetUser(friendID);
-        friend.getFriends().add(userId);
-        log.info("Пользователю с id {} добавлен друг с id {}", friendID, userId);
+        checkAndGetUser(userId);
+        checkAndGetUser(friendID);
+
+        userStorage.addFriend(userId, friendID);
+        log.info("В БД успешно добавлена связь: пользователю с id {} добавлен друг с id {}", userId, friendID);
     }
 
-    //удаление из друзей
+
     public void deleteFriend(Long userId, Long friendID) {
-        User user = checkAndGetUser(userId);
-        user.getFriends().remove(friendID);
+        checkAndGetUser(userId);
+        checkAndGetUser(friendID);
+
+        userStorage.deleteFriend(userId, friendID);
         log.info("У пользователя с id {} удален друг с id {}", userId, friendID);
-        User friend = checkAndGetUser(friendID);
-        friend.getFriends().remove(userId);
-        log.info("У пользователя с id {} удален друг с id {}", friendID, userId);
     }
 
-    //вывод списка друзей
-    public Collection<User> detUserFriendsList(Long userId) {
-        User user = checkAndGetUser(userId);
-        return user.getFriends().stream()
-                .map(userStorage::getUserById)
-                .flatMap(Optional::stream)
-                .collect(Collectors.toList());
+    public Collection<User> getUserFriendsList(Long userId) {
+        checkAndGetUser(userId);
+        return userStorage.getFriends(userId);
     }
 
-    //вывод списка общих друзей
     public Collection<User> getUsersSameFriendsList(Long user1Id, Long user2Id) {
-        User user1 = checkAndGetUser(user1Id);
-        User user2 = checkAndGetUser(user2Id);
-        return user1.getFriends().stream()
-                .filter(user2.getFriends()::contains)
-                .map(userStorage::getUserById)
-                .flatMap(Optional::stream)
-                .collect(Collectors.toSet());
+        checkAndGetUser(user1Id);
+        checkAndGetUser(user2Id);
+        return userStorage.getCommonFriends(user1Id, user2Id);
     }
 
     public Collection<User> findAll() {
@@ -76,11 +65,15 @@ public class UserService {
     }
 
     public User create(User user) {
-        return userStorage.create(user);
+        User createdUser = userStorage.create(user);
+        log.info("Создан новый пользователь с id: {}", createdUser.getId());
+        return createdUser;
     }
 
     public User update(User newUser) {
-        return userStorage.update(newUser);
+        User updatedUser = userStorage.update(newUser);
+        log.info("Обновлен пользователь с id: {}", updatedUser.getId());
+        return updatedUser;
     }
 
     public Optional<User> getUserById(Long id) {

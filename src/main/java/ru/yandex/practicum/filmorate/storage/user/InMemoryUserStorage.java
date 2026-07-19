@@ -24,23 +24,19 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public User create(User user) {
-        // проверяем выполнение необходимых условий
         if (isExistEmail(user)) {
             log.error("Ошибка 409 Conflict : введенный Email уже используется {}", user);
             throw new DuplicatedDataException("Этот Email уже используется");
         }
-        // формируем дополнительные данные
         user.setId(getNextId());
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
         }
-        // сохраняем нового пользователя в памяти приложения
         users.put(user.getId(), user);
         log.info("Успешно добавлен новый пользователь {}", user);
         return user;
     }
 
-    // вспомогательный метод для генерации идентификатора нового пользователя
     private long getNextId() {
         long currentMaxId = users.keySet()
                 .stream()
@@ -50,7 +46,6 @@ public class InMemoryUserStorage implements UserStorage {
         return ++currentMaxId;
     }
 
-    //вспомогательный метод проверки существует ли такой имейл
     private boolean isExistEmail(User user) {
         return users.values().stream()
                 .anyMatch(u -> u.getEmail().equals(user.getEmail()));
@@ -60,12 +55,10 @@ public class InMemoryUserStorage implements UserStorage {
     public User update(User newUser) {
         if (users.containsKey(newUser.getId())) {
             User oldUser = users.get(newUser.getId());
-            // проверяем необходимые условия
             if (isExistEmail(newUser) && !newUser.getEmail().equals(oldUser.getEmail())) {
                 log.error("Ошибка 409 Conflict : введенный Email уже используется {}", newUser);
                 throw new DuplicatedDataException("Этот Email уже используется");
             }
-            // если публикация найдена и все условия соблюдены, обновляем её содержимое
             oldUser.setEmail(newUser.getEmail());
             oldUser.setLogin(newUser.getLogin());
             if (newUser.getName() == null || newUser.getName().isBlank()) {
@@ -99,4 +92,25 @@ public class InMemoryUserStorage implements UserStorage {
     public Optional<User> getUserById(Long id) {
         return Optional.ofNullable(users.get(id));
     }
+
+    @Override
+    public void addFriend(Long userId, Long friendId) {
+        throw new UnsupportedOperationException("InMemoryUserStorage не поддерживается.");
+    }
+
+    @Override
+    public void deleteFriend(Long userId, Long friendId) {
+        throw new UnsupportedOperationException("InMemoryUserStorage не поддерживается.");
+    }
+
+    @Override
+    public Collection<User> getFriends(Long userId) {
+        throw new UnsupportedOperationException("InMemoryUserStorage не поддерживается.");
+    }
+
+    @Override
+    public Collection<User> getCommonFriends(Long userId, Long otherId) {
+        throw new UnsupportedOperationException("InMemoryUserStorage не поддерживается.");
+    }
+
 }

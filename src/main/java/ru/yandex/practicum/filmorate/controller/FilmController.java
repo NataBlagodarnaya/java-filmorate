@@ -2,15 +2,20 @@ package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.dto.FilmDto;
+import ru.yandex.practicum.filmorate.dto.NewFilmRequest;
+import ru.yandex.practicum.filmorate.dto.UpdateFilmRequest;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.validator.OnUpdate;
 
 import java.util.Collection;
+import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/films")
@@ -19,38 +24,52 @@ public class FilmController {
     private final FilmService filmService;
 
     @GetMapping
-    public Collection<Film> findAll() {
-        return filmService.findAll();
+    public Collection<FilmDto> findAll() {
+        log.info("Получен HTTP-запрос GET /films на получение всех фильмов");
+        return filmService.findAll().stream()
+                .map(FilmMapper::mapToFilmDto)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public Film findById(@PathVariable long id) {
+    public FilmDto findById(@PathVariable long id) {
+        log.info("Получен запрос GET /films/{}", id);
         return filmService.getFilmById(id)
+                .map(FilmMapper::mapToFilmDto)
                 .orElseThrow(() -> new NotFoundException("Фильм с id = " + id + " не найден"));
     }
 
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable long id, @PathVariable long userId) {
+        log.info("Получен запрос на добаление лайка PUT /films/{}/like/{}", id, userId);
         filmService.addLike(id, userId);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     public void deleteLike(@PathVariable long id, @PathVariable long userId) {
+        log.info("Получен запрос на удаление лайка DELETE /films/{}/like/{}", id, userId);
         filmService.deleteLike(id, userId);
     }
 
     @GetMapping("/popular")
-    public Collection<Film> getPopularFilms(@RequestParam(defaultValue = "10") Integer count) {
-       return filmService.getPopularFilms(count);
+    public Collection<FilmDto> getPopularFilms(@RequestParam(defaultValue = "10") Integer count) {
+        log.info("Получен запрос на получение популярных фильмов GET /films/popular?count={}", count);
+        return filmService.getPopularFilms(count).stream()
+                .map(FilmMapper::mapToFilmDto)
+                .collect(Collectors.toList());
     }
 
     @PostMapping
-    public Film create(@Valid @RequestBody Film film) {
-        return filmService.create(film);
+    public FilmDto create(@Valid @RequestBody NewFilmRequest request) {
+        log.info("Получен запрос POST /films на создание фильма: {}", request.getName());
+        Film createdFilm = filmService.create(request);
+        return FilmMapper.mapToFilmDto(createdFilm);
     }
 
     @PutMapping
-    public Film update(@Validated(OnUpdate.class) @RequestBody Film newFilm) {
-        return filmService.update(newFilm);
+    public FilmDto update(@Valid @RequestBody UpdateFilmRequest request) {
+        log.info("Получен запрос PUT /films на обновление фильма с id={}", request.getId());
+        Film savedFilm = filmService.update(request);
+        return FilmMapper.mapToFilmDto(savedFilm);
     }
 }
