@@ -9,11 +9,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
@@ -22,35 +18,41 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     private static final String INSERT_QUERY = "INSERT INTO films (title, description, release_date, duration, rating_id) " +
             "VALUES (?, ?, ?, ?, ?)";
-    private static final String FIND_ALL_QUERY = "SELECT * FROM films";
+    private static final String FIND_ALL_QUERY =
+            "SELECT f.*, r.rating AS mpa_name FROM films f LEFT JOIN rating r ON f.rating_id = r.rating_id";
     private static final String UPDATE_QUERY = "UPDATE films SET title = ?, description = ?, release_date = ?, " +
             "duration = ?, rating_id = ? WHERE film_id = ?";
     private static final String DELETE_QUERY = "DELETE FROM films WHERE film_id = ?";
-    private static final String FIND_BY_ID_QUERY = "SELECT * FROM films WHERE film_id = ?";
+    private static final String FIND_BY_ID_QUERY =
+            "SELECT f.*, r.rating AS mpa_name FROM films f LEFT JOIN rating r ON f.rating_id = r.rating_id WHERE f.film_id = ?";
     private static final String CONTAINS_QUERY = "SELECT COUNT(*) FROM films WHERE film_id = ?";
 
     private static final String INSERT_FILM_GENRE_QUERY = "INSERT INTO film_genre (film_id, genre_id) VALUES (?, ?)";
     private static final String DELETE_FILM_GENRES_QUERY = "DELETE FROM film_genre WHERE film_id = ?";
-    private static final String FIND_GENRES_FOR_FILMS = "SELECT fg.film_id, g.genre_id, g.genre FROM genre g " +
-            "JOIN film_genre fg ON g.genre_id = fg.genre_id " +
-            "WHERE fg.film_id IN (%s) ORDER BY g.genre_id";
+    private static final String FIND_GENRES_FOR_FILMS = "SELECT fg.film_id, fg.genre_id, g.genre FROM film_genre fg " +
+            "JOIN genre g ON fg.genre_id = g.genre_id " +
+            "WHERE fg.film_id IN (%s) ORDER BY fg.genre_id ASC";
 
     private static final String INSERT_LIKE_QUERY = "INSERT INTO likes (film_id, user_id) VALUES (?, ?)";
     private static final String DELETE_LIKE_QUERY = "DELETE FROM likes WHERE film_id = ? AND user_id = ?";
-    private static final String FIND_LIKES_QUERY = "SELECT user_id FROM likes WHERE film_id = ?";
-    private static final String FIND_POPULAR_QUERY = "SELECT f.* FROM films f " +
-            "LEFT JOIN likes l ON f.film_id = l.film_id " +
-            "GROUP BY f.film_id " +
-            "ORDER BY COUNT(l.user_id) DESC " +
-            "LIMIT ?";
+    private static final String CONTAINS_LIKE_QUERY =
+            "SELECT COUNT(*) FROM likes WHERE film_id = ? AND user_id = ?";
+    private static final String FIND_POPULAR_QUERY =
+            "SELECT f.film_id, f.title, f.description, f.release_date, f.duration, f.rating_id, r.rating AS mpa_name " +
+                    "FROM films f " +
+                    "LEFT JOIN rating r ON f.rating_id = r.rating_id " +
+                    "LEFT JOIN likes l ON f.film_id = l.film_id " +
+                    "GROUP BY f.film_id, f.title, f.description, f.release_date, f.duration, f.rating_id, r.rating " +
+                    "ORDER BY COUNT(l.user_id) DESC " +
+                    "LIMIT ?";
 
     public FilmDbStorage(JdbcTemplate jdbc, FilmRowMapper mapper) {
-        super(jdbc, mapper, Film.class);
+        super(jdbc, mapper);
     }
 
     @Override
     public Film create(Film film) {
-        Long ratingId = (film.getRating() != null) ? film.getRating().getId() : null;
+        Long ratingId = (film.getMpa() != null) ? film.getMpa().getId() : null;
 
         long id = insert(
                 INSERT_QUERY,
@@ -62,20 +64,18 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         );
         film.setId(id);
 
-        if (film.getGenre() != null && !film.getGenre().isEmpty()) {
-            for (Genre g : film.getGenre()) {
-                jdbc.update(INSERT_FILM_GENRE_QUERY, id, g.getId());
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            for (Genre genre : film.getGenres()) {
+                jdbc.update(INSERT_FILM_GENRE_QUERY, id, genre.getId());
             }
-            loadGenresForSingleFilm(film);
         }
-        return film;
+        return getFilmById(id).get();
     }
 
     @Override
     public Collection<Film> findAll() {
         Collection<Film> films = jdbc.query(FIND_ALL_QUERY, mapper);
         loadGenresForFilmList(films);
-        loadLikesForFilmList(films);
         return films;
     }
 
@@ -84,7 +84,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         if (!containsFilm(newFilm.getId())) {
             throw new NotFoundException("Фильм с id = " + newFilm.getId() + " не найден");
         }
-        Long ratingId = (newFilm.getRating() != null) ? newFilm.getRating().getId() : null;
+        Long ratingId = (newFilm.getMpa() != null) ? newFilm.getMpa().getId() : null;
 
         update(
                 UPDATE_QUERY,
@@ -97,13 +97,12 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         );
 
         jdbc.update(DELETE_FILM_GENRES_QUERY, newFilm.getId());
-        if (newFilm.getGenre() != null && !newFilm.getGenre().isEmpty()) {
-            for (Genre g : newFilm.getGenre()) {
+        if (newFilm.getGenres() != null && !newFilm.getGenres().isEmpty()) {
+            for (Genre g : newFilm.getGenres()) {
                 jdbc.update(INSERT_FILM_GENRE_QUERY, newFilm.getId(), g.getId());
             }
         }
-        loadGenresForSingleFilm(newFilm);
-        return newFilm;
+        return getFilmById(newFilm.getId()).get();
     }
 
     @Override
@@ -122,12 +121,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
     @Override
     public Optional<Film> getFilmById(Long id) {
         Optional<Film> filmOptional = findOne(FIND_BY_ID_QUERY, id);
-        filmOptional.ifPresent(film -> {
-            loadGenresForSingleFilm(film);
-            List<Long> userLikes = jdbc.query(FIND_LIKES_QUERY, (rs, rowNum) ->
-                    rs.getLong("user_id"), film.getId());
-            film.setLikes(new HashSet<>(userLikes));
-        });
+        filmOptional.ifPresent(this::loadGenresForSingleFilm);
         return filmOptional;
     }
 
@@ -145,65 +139,60 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
     public Collection<Film> getPopularFilms(Integer count) {
         Collection<Film> films = jdbc.query(FIND_POPULAR_QUERY, mapper, count);
         loadGenresForFilmList(films);
-        loadLikesForFilmList(films);
         return films;
     }
 
     private void loadGenresForSingleFilm(Film film) {
         String query = String.format(FIND_GENRES_FOR_FILMS, film.getId());
-        List<Genre> genres = jdbc.query(query, (rs, rowNum) ->
-                Genre.fromId(rs.getLong("genre_id"))
-        );
-        film.setGenre(new java.util.LinkedHashSet<>(genres));
+        List<Genre> genres = jdbc.query(query, (rs, rowNum) -> {
+            Long genreId = rs.getLong("genre_id");
+
+            if (genreId != null) {
+                Genre genre = new Genre();
+                genre.setId(genreId);
+                genre.setName(rs.getString("genre"));
+                return genre;
+            }
+            return null;
+        });
+
+        genres.removeIf(Objects::isNull);
+        film.setGenres(new LinkedHashSet<>(genres));
     }
 
     private void loadGenresForFilmList(Collection<Film> films) {
         if (films.isEmpty()) return;
 
         String inParams = films.stream()
-                .map(f -> String.valueOf(f.getId()))
+                .map(film -> String.valueOf(film.getId()))
                 .collect(Collectors.joining(", "));
 
         String query = String.format(FIND_GENRES_FOR_FILMS, inParams);
-        Map<Long, Film> filmMap = films.stream().collect(Collectors.toMap(Film::getId, f -> f));
+        Map<Long, Film> filmMap = films.stream().collect(Collectors.toMap(Film::getId, film -> film));
 
         jdbc.query(query, (rs, rowNum) -> {
             Long filmId = rs.getLong("film_id");
-            Genre genre = Genre.fromId(rs.getLong("genre_id"));
+            Long genreId = rs.getLong("genre_id");
 
-            Film film = filmMap.get(filmId);
-            if (film != null) {
-                if (film.getGenre() == null) {
-                    film.setGenre(new java.util.LinkedHashSet<>());
+            if (!rs.wasNull()) {
+                Film film = filmMap.get(filmId);
+                if (film != null) {
+                    if (film.getGenres() == null) {
+                        film.setGenres(new LinkedHashSet<>());
+                    }
+                    Genre genre = new Genre();
+                    genre.setId(genreId);
+                    genre.setName(rs.getString("genre"));
+                    film.getGenres().add(genre);
                 }
-                film.getGenre().add(genre);
             }
             return null;
         });
     }
 
-    private void loadLikesForFilmList(Collection<Film> films) {
-        if (films.isEmpty()) return;
-
-        String inParams = films.stream()
-                .map(f -> String.valueOf(f.getId()))
-                .collect(Collectors.joining(", "));
-
-        String query = "SELECT * FROM likes WHERE film_id IN (" + inParams + ")";
-        Map<Long, Film> filmMap = films.stream().collect(Collectors.toMap(Film::getId, f -> f));
-
-        jdbc.query(query, (rs, rowNum) -> {
-            Long filmId = rs.getLong("film_id");
-            Long userId = rs.getLong("user_id");
-
-            Film film = filmMap.get(filmId);
-            if (film != null) {
-                if (film.getLikes() == null) {
-                    film.setLikes(new HashSet<>());
-                }
-                film.getLikes().add(userId);
-            }
-            return null;
-        });
+    @Override
+    public boolean containsLike(Long filmId, Long userId) {
+        Integer count = jdbc.queryForObject(CONTAINS_LIKE_QUERY, Integer.class, filmId, userId);
+        return count != null && count > 0;
     }
 }

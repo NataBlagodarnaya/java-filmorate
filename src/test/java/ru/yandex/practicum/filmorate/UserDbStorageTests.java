@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate;
 
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,15 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 @JdbcTest
 @Import({UserDbStorage.class, UserRowMapper.class})
 @AutoConfigureTestDatabase
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 class UserDbStorageTests {
 
     private final UserDbStorage userStorage;
     private User createdUser;
-
-    @Autowired
-    public UserDbStorageTests(UserDbStorage userStorage) {
-        this.userStorage = userStorage;
-    }
 
     @BeforeEach
     public void setUp() {

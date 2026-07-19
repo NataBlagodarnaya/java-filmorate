@@ -23,4 +23,3 @@ public class NewUserRequest {
     @PastOrPresent(message = "Дата рождения пользователя не может быть в будущем")
     private LocalDate birthday;
 }
-

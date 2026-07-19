@@ -88,4 +88,9 @@ public class InMemoryFilmStorage implements FilmStorage {
     public Collection<Film> getPopularFilms(Integer count) {
         throw new UnsupportedOperationException("InMemoryFilmStorage не поддерживается.");
     }
+
+    @Override
+    public boolean containsLike(Long filmId, Long userId) {
+        throw new UnsupportedOperationException("InMemoryFilmStorage не поддерживается.");
+    }
 }

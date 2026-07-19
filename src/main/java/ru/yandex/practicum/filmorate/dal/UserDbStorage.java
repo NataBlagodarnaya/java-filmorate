@@ -9,6 +9,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Optional;
 
 @Repository
@@ -35,7 +36,7 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
             "WHERE f1.user_id = ? AND f2.user_id = ?";
 
     public UserDbStorage(JdbcTemplate jdbc, UserRowMapper mapper) {
-        super(jdbc, mapper, User.class);
+        super(jdbc, mapper);
     }
 
     @Override
@@ -61,7 +62,7 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
                     (rs, rowNum) -> rs.getLong("friend_id"),
                     user.getId()
             );
-            user.setFriends(new java.util.HashSet<>(friendIds));
+            user.setFriends(new HashSet<>(friendIds));
         });
 
         return users;
@@ -106,7 +107,7 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
                     (rs, rowNum) -> rs.getLong("friend_id"),
                     user.getId()
             );
-            user.setFriends(new java.util.HashSet<>(friendIds));
+            user.setFriends(new HashSet<>(friendIds));
         });
 
         return userOptional;

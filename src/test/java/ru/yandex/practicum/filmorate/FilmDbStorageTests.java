@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate;
 
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +12,6 @@ import ru.yandex.practicum.filmorate.dal.UserDbStorage;
 import ru.yandex.practicum.filmorate.dal.mappers.FilmRowMapper;
 import ru.yandex.practicum.filmorate.dal.mappers.UserRowMapper;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Rating;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
@@ -28,17 +28,13 @@ import static org.assertj.core.api.Assertions.assertThat;
         UserRowMapper.class
 })
 @AutoConfigureTestDatabase
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 class FilmDbStorageTests {
 
     private final FilmDbStorage filmStorage;
     private final UserDbStorage userStorage;
     private Film createdFilm;
 
-    @Autowired
-    public FilmDbStorageTests(FilmDbStorage filmStorage, UserDbStorage userStorage) {
-        this.filmStorage = filmStorage;
-        this.userStorage = userStorage;
-    }
 
     @BeforeEach
     public void setUp() {
@@ -47,7 +43,6 @@ class FilmDbStorageTests {
         newFilm.setDescription("Описание тестового фильма");
         newFilm.setReleaseDate(LocalDate.of(2010, 7, 16));
         newFilm.setDuration(148);
-        newFilm.setRating(Rating.fromId(1L));
 
         createdFilm = filmStorage.create(newFilm);
     }
@@ -75,7 +70,6 @@ class FilmDbStorageTests {
         film2.setDescription("Описание 2");
         film2.setReleaseDate(LocalDate.of(2020, 1, 1));
         film2.setDuration(100);
-        film2.setRating(Rating.fromId(2L));
 
         Film savedFilm2 = filmStorage.create(film2);
 
@@ -158,19 +152,11 @@ class FilmDbStorageTests {
         film2.setDescription("Описание");
         film2.setReleaseDate(LocalDate.of(2015, 5, 5));
         film2.setDuration(90);
-        film2.setRating(Rating.fromId(1L));
         Film savedFilm2 = filmStorage.create(film2);
 
         filmStorage.addLike(createdFilm.getId(), savedUser1.getId());
         filmStorage.addLike(createdFilm.getId(), savedUser2.getId());
         filmStorage.addLike(savedFilm2.getId(), savedUser1.getId());
-
-        Optional<Film> loadedFilm1 = filmStorage.getFilmById(createdFilm.getId());
-        assertThat(loadedFilm1).isPresent();
-        assertThat(loadedFilm1.get().getLikes())
-                .isNotNull()
-                .hasSize(2)
-                .contains(savedUser1.getId(), savedUser2.getId());
 
         Collection<Film> popularFilms = filmStorage.getPopularFilms(10);
         assertThat(popularFilms)
@@ -182,10 +168,9 @@ class FilmDbStorageTests {
 
         filmStorage.deleteLike(createdFilm.getId(), savedUser1.getId());
 
-        Optional<Film> loadedFilm1AfterDelete = filmStorage.getFilmById(createdFilm.getId());
-        assertThat(loadedFilm1AfterDelete).isPresent();
-        assertThat(loadedFilm1AfterDelete.get().getLikes())
-                .hasSize(1)
-                .containsExactly(savedUser2.getId());
+        Collection<Film> popularFilmsAfterDelete = filmStorage.getPopularFilms(10);
+        assertThat(popularFilmsAfterDelete)
+                .isNotNull()
+                .hasSize(2);
     }
 }

@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -25,20 +26,9 @@ public class NewFilmRequest {
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Integer duration;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("genres")
+    @JsonProperty("genres")
     private Set<GenreDto> genres;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("mpa")
-    private RatingDto rating;
-
-    @Data
-    public static class GenreDto {
-        private Long id;
-    }
-
-    @Data
-    public static class RatingDto {
-        private Long id;
-    }
+    @JsonProperty("mpa")
+    private RatingDto mpa;
 }
-

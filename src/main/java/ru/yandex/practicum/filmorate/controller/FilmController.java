@@ -41,19 +41,19 @@ public class FilmController {
 
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable long id, @PathVariable long userId) {
-        log.info("Получен запрос PUT /films/{}/like/{}", id, userId);
+        log.info("Получен запрос на добаление лайка PUT /films/{}/like/{}", id, userId);
         filmService.addLike(id, userId);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     public void deleteLike(@PathVariable long id, @PathVariable long userId) {
-        log.info("Получен запрос DELETE /films/{}/like/{}", id, userId);
+        log.info("Получен запрос на удаление лайка DELETE /films/{}/like/{}", id, userId);
         filmService.deleteLike(id, userId);
     }
 
     @GetMapping("/popular")
     public Collection<FilmDto> getPopularFilms(@RequestParam(defaultValue = "10") Integer count) {
-        log.info("Получен запрос GET /films/popular?count={}", count);
+        log.info("Получен запрос на получение популярных фильмов GET /films/popular?count={}", count);
         return filmService.getPopularFilms(count).stream()
                 .map(FilmMapper::mapToFilmDto)
                 .collect(Collectors.toList());
@@ -62,19 +62,14 @@ public class FilmController {
     @PostMapping
     public FilmDto create(@Valid @RequestBody NewFilmRequest request) {
         log.info("Получен запрос POST /films на создание фильма: {}", request.getName());
-        Film filmEntity = FilmMapper.mapToFilm(request);
-        Film createdFilm = filmService.create(filmEntity);
+        Film createdFilm = filmService.create(request);
         return FilmMapper.mapToFilmDto(createdFilm);
     }
 
     @PutMapping
     public FilmDto update(@Valid @RequestBody UpdateFilmRequest request) {
         log.info("Получен запрос PUT /films на обновление фильма с id={}", request.getId());
-        Film existingFilm = filmService.getFilmById(request.getId())
-                .orElseThrow(() -> new NotFoundException("Фильм с id = " + request.getId() + " не найден"));
-
-        Film updatedFilmFields = FilmMapper.updateFilmFields(existingFilm, request);
-        Film savedFilm = filmService.update(updatedFilmFields);
+        Film savedFilm = filmService.update(request);
         return FilmMapper.mapToFilmDto(savedFilm);
     }
 }

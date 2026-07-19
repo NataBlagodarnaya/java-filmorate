@@ -2,45 +2,26 @@ package ru.yandex.practicum.filmorate.mapper;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import ru.yandex.practicum.filmorate.dto.FilmDto;
-import ru.yandex.practicum.filmorate.dto.NewFilmRequest;
-import ru.yandex.practicum.filmorate.dto.UpdateFilmRequest;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.dto.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Rating;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class FilmMapper {
 
-    public static Film mapToFilm(NewFilmRequest request) {
+    public static Film mapToFilm(NewFilmRequest request, Rating rating, Set<Genre> genres) {
         Film film = new Film();
         film.setName(request.getName());
         film.setDescription(request.getDescription());
         film.setReleaseDate(request.getReleaseDate());
         film.setDuration(request.getDuration());
-
-        java.util.Set<Genre> modelGenres = new java.util.HashSet<>();
-        if (request.getGenres() != null) {
-            try {
-                for (NewFilmRequest.GenreDto dto : request.getGenres()) {
-                    if (dto.getId() != null) {
-                        modelGenres.add(Genre.fromId(dto.getId()));
-                    }
-                }
-            } catch (IllegalArgumentException e) {
-                throw new NotFoundException("Жанр не найден");
-            }
-        }
-        film.setGenre(modelGenres);
-
-        if (request.getRating() != null && request.getRating().getId() != null) {
-            try {
-                film.setRating(Rating.fromId(request.getRating().getId()));
-            } catch (IllegalArgumentException e) {
-                throw new NotFoundException("Рейтинг не найден");
-            }
-        }
+        film.setMpa(rating);
+        film.setGenres(genres);
         return film;
     }
 
@@ -51,22 +32,34 @@ public final class FilmMapper {
         dto.setDescription(film.getDescription());
         dto.setReleaseDate(film.getReleaseDate());
         dto.setDuration(film.getDuration());
-        dto.setLikes(film.getLikes());
-        dto.setGenres(film.getGenre());
 
-        if (film.getRating() != null) {
-            FilmDto.RatingResponseDto mpaDto = new FilmDto.RatingResponseDto();
-            mpaDto.setId(film.getRating().getId());
-            mpaDto.setName(film.getRating().getName());
-            dto.setMpa(mpaDto);
+        RatingDto ratingDto = new RatingDto();
+        if (film.getMpa() != null && film.getMpa().getId() != null) {
+            ratingDto.setId(film.getMpa().getId());
+            ratingDto.setName(film.getMpa().getName());
         } else {
-            dto.setMpa(null);
+            ratingDto.setId(null);
+            ratingDto.setName(null);
         }
+        dto.setMpa(ratingDto);
+
+        Set<GenreDto> genreDtos = new LinkedHashSet<>();
+        if (film.getGenres() != null) {
+            genreDtos = film.getGenres().stream()
+                    .map(genre -> {
+                        GenreDto genreDto = new GenreDto();
+                        genreDto.setId(genre.getId());
+                        genreDto.setName(genre.getName());
+                        return genreDto;
+                    })
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+        dto.setGenres(genreDtos);
 
         return dto;
     }
 
-    public static Film updateFilmFields(Film film, UpdateFilmRequest request) {
+    public static Film updateFilmFields(Film film, UpdateFilmRequest request, Rating rating, Set<Genre> genres) {
         if (request.hasName()) {
             film.setName(request.getName());
         }
@@ -79,25 +72,11 @@ public final class FilmMapper {
         if (request.hasDuration()) {
             film.setDuration(request.getDuration());
         }
-        if (request.hasRating()) {
-            try {
-                film.setRating(Rating.fromId(request.getRating().getId()));
-            } catch (IllegalArgumentException e) {
-                throw new NotFoundException("Рейтинг не найден");
-            }
+        if (request.hasMpa()) {
+            film.setMpa(rating);
         }
         if (request.hasGenre()) {
-            java.util.Set<Genre> modelGenres = new java.util.HashSet<>();
-            try {
-                for (UpdateFilmRequest.GenreDto dto : request.getGenres()) {
-                    if (dto.getId() != null) {
-                        modelGenres.add(Genre.fromId(dto.getId()));
-                    }
-                }
-            } catch (IllegalArgumentException e) {
-                throw new NotFoundException("Жанр не найден");
-            }
-            film.setGenre(modelGenres);
+            film.setGenres(genres);
         }
         return film;
     }
